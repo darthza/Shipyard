@@ -1,0 +1,92 @@
+@page "/containers/{ContainerId}/logs"
+@inject IDockerContainerService DockerContainers
+@inject DockerEndpointState DockerEndpoint
+@inject NavigationManager Navigation
+
+<PageTitle>Container Logs</PageTitle>
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">Container Logs</p>
+        <h1>@(containerName ?? ContainerId[..12])</h1>
+        <p class="endpoint-note">@DockerEndpoint.Endpoint</p>
+    </div>
+    <div class="toolbar">
+        <label class="field">
+            Tail
+            <input class="form-control" type="number" min="10" max="5000" step="10" @bind="tail" />
+        </label>
+        <label class="auto-refresh">
+            <input type="checkbox" @bind="includeTimestamps" />
+            Timestamps
+        </label>
+        <button class="btn btn-outline-secondary" @onclick="LoadLogsAsync" disabled="@isBusy">Refresh</button>
+        <button class="btn btn-outline-primary" @onclick="BackToContainers">Back</button>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+@if (isBusy && string.IsNullOrEmpty(logs))
+{
+    <p>Loading logs...</p>
+}
+else
+{
+    <pre class="log-view">@logs</pre>
+}
+
+@code {
+    [Parameter]
+    public string ContainerId { get; set; } = string.Empty;
+
+    private string? logs;
+    private string? containerName;
+    private string? errorMessage;
+    private bool isBusy;
+    private int tail = 200;
+    private bool includeTimestamps = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadContainerNameAsync();
+        await LoadLogsAsync();
+    }
+
+    private async Task LoadContainerNameAsync()
+    {
+        var containers = await DockerContainers.GetContainersAsync();
+        containerName = containers.FirstOrDefault(container => container.Id == ContainerId)?.Name;
+    }
+
+    private async Task LoadLogsAsync()
+    {
+        errorMessage = null;
+        isBusy = true;
+
+        try
+        {
+            logs = await DockerContainers.GetLogsAsync(
+                ContainerId,
+                new ContainerLogOptions(tail, includeTimestamps));
+
+            if (string.IsNullOrWhiteSpace(logs))
+            {
+                logs = "No logs returned for this container.";
+            }
+        }
+        catch (Exception exception)
+        {
+            errorMessage = exception.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void BackToContainers() => Navigation.NavigateTo("/");
+}

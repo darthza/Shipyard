@@ -1,0 +1,68 @@
+.page {
+    background: #fff;
+    min-height: 100vh;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+.app-header {
+    align-items: center;
+    background-color: #fff;
+    border-bottom: 1px solid #e4e4e7;
+    display: flex;
+    height: 4rem;
+    padding: 0 1.5rem;
+}
+
+.brand {
+    color: #09090b;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    text-decoration: none;
+}
+
+@media (max-width: 640.98px) {
+    .app-header {
+        padding: 0 1.25rem;
+    }
+}
+
+@media (min-width: 641px) {
+    .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        padding-left: 2.5rem;
+        padding-right: 2.5rem;
+    }
+
+    article {
+        padding-left: 2.5rem !important;
+        padding-right: 2.5rem !important;
+    }
+}
+
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }

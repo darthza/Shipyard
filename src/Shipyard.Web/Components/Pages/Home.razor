@@ -1,0 +1,229 @@
+@page "/"
+@inject IDockerContainerService DockerContainers
+@inject DockerEndpointState DockerEndpoint
+@implements IDisposable
+
+<PageTitle>Shipyard</PageTitle>
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">Docker Monitor</p>
+        <h1>Containers</h1>
+    </div>
+    <div class="toolbar">
+        <label class="auto-refresh">
+            <input type="checkbox" @bind="autoRefresh" @bind:after="OnAutoRefreshChanged" />
+            Auto-refresh
+        </label>
+        <button class="btn btn-outline-secondary" @onclick="LoadContainersAsync" disabled="@isBusy">Refresh</button>
+    </div>
+</section>
+
+<section class="endpoint-panel" aria-label="Docker endpoint">
+    <div>
+        <div class="endpoint-title">Docker endpoint</div>
+        <div class="endpoint-current">@DockerEndpoint.Endpoint</div>
+    </div>
+    <div class="endpoint-form">
+        <input class="form-control" aria-label="Docker endpoint URL" placeholder="unix:///var/run/docker.sock or tcp://server:2375" @bind="dockerEndpointInput" />
+        <button class="btn btn-primary" @onclick="ApplyDockerEndpointAsync" disabled="@isBusy">Apply</button>
+        <button class="btn btn-outline-secondary" @onclick="ResetDockerEndpointAsync" disabled="@isBusy">Default</button>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(statusMessage))
+{
+    <div class="alert alert-success" role="status">@statusMessage</div>
+}
+
+@if (containers is null)
+{
+    <p>Loading containers...</p>
+}
+else if (containers.Count == 0)
+{
+    <div class="empty-state">
+        <h2>No containers found</h2>
+        <p>Start a Docker container and refresh this page to inspect it.</p>
+    </div>
+}
+else
+{
+    <div class="table-wrap">
+        <table class="table align-middle container-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Image</th>
+                    <th>Status</th>
+                    <th>Ports</th>
+                    <th>Created</th>
+                    <th class="actions-column">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var container in containers)
+                {
+                    <tr>
+                        <td>
+                            <a class="container-name" href="@($"containers/{container.Id}/logs")">@container.Name</a>
+                            <div class="container-id">@container.Id[..12]</div>
+                        </td>
+                        <td>@container.Image</td>
+                        <td>
+                            <span class="status-pill @(container.IsRunning ? "running" : "stopped")">@container.State</span>
+                            <div class="status-detail">@container.Status</div>
+                        </td>
+                        <td>
+                            @if (container.Ports.Count == 0)
+                            {
+                                <span class="muted">None</span>
+                            }
+                            else
+                            {
+                                @foreach (var port in container.Ports)
+                                {
+                                    <div>@port</div>
+                                }
+                            }
+                        </td>
+                        <td>@container.Created.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td class="actions">
+                            <button class="btn btn-sm btn-success" @onclick="() => StartContainerAsync(container)" disabled="@(container.IsRunning || isBusy)">Start</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => StopContainerAsync(container)" disabled="@(!container.IsRunning || isBusy)">Stop</button>
+                            <a class="btn btn-sm btn-outline-primary" href="@($"containers/{container.Id}/logs")">Logs</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<ContainerSummary>? containers;
+    private bool isBusy;
+    private bool autoRefresh;
+    private string? errorMessage;
+    private string? statusMessage;
+    private string dockerEndpointInput = string.Empty;
+    private PeriodicTimer? refreshTimer;
+    private CancellationTokenSource? refreshCancellation;
+
+    protected override async Task OnInitializedAsync()
+    {
+        dockerEndpointInput = DockerEndpoint.Endpoint;
+        await LoadContainersAsync();
+    }
+
+    private async Task LoadContainersAsync()
+    {
+        await RunWithMessagesAsync(async () =>
+        {
+            containers = await DockerContainers.GetContainersAsync();
+        });
+    }
+
+    private async Task StartContainerAsync(ContainerSummary container)
+    {
+        await RunWithMessagesAsync(async () =>
+        {
+            await DockerContainers.StartContainerAsync(container.Id);
+            statusMessage = $"Started {container.Name}.";
+            containers = await DockerContainers.GetContainersAsync();
+        });
+    }
+
+    private async Task StopContainerAsync(ContainerSummary container)
+    {
+        await RunWithMessagesAsync(async () =>
+        {
+            await DockerContainers.StopContainerAsync(container.Id);
+            statusMessage = $"Stopped {container.Name}.";
+            containers = await DockerContainers.GetContainersAsync();
+        });
+    }
+
+    private async Task ApplyDockerEndpointAsync()
+    {
+        await RunWithMessagesAsync(async () =>
+        {
+            DockerEndpoint.SetEndpoint(dockerEndpointInput);
+            containers = await DockerContainers.GetContainersAsync();
+            statusMessage = $"Connected to {DockerEndpoint.Endpoint}.";
+        });
+    }
+
+    private async Task ResetDockerEndpointAsync()
+    {
+        await RunWithMessagesAsync(async () =>
+        {
+            DockerEndpoint.Reset();
+            dockerEndpointInput = DockerEndpoint.Endpoint;
+            containers = await DockerContainers.GetContainersAsync();
+            statusMessage = "Docker endpoint reset to the default.";
+        });
+    }
+
+    private async Task RunWithMessagesAsync(Func<Task> action)
+    {
+        errorMessage = null;
+        statusMessage = null;
+        isBusy = true;
+
+        try
+        {
+            await action();
+        }
+        catch (Exception exception)
+        {
+            errorMessage = exception.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void OnAutoRefreshChanged()
+    {
+        refreshCancellation?.Cancel();
+        refreshTimer?.Dispose();
+
+        if (!autoRefresh)
+        {
+            return;
+        }
+
+        refreshCancellation = new CancellationTokenSource();
+        refreshTimer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        _ = AutoRefreshAsync(refreshCancellation.Token);
+    }
+
+    private async Task AutoRefreshAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (refreshTimer is not null && await refreshTimer.WaitForNextTickAsync(cancellationToken))
+            {
+                containers = await DockerContainers.GetContainersAsync(cancellationToken);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        refreshCancellation?.Cancel();
+        refreshCancellation?.Dispose();
+        refreshTimer?.Dispose();
+    }
+}
