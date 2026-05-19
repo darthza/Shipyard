@@ -18,9 +18,62 @@ Shipyard is a minimal Blazor Server app for monitoring and managing local Docker
 - Blazor Server
 - Docker.DotNet
 - Docker socket access through `/var/run/docker.sock`
+- Docker image and Compose support
 - Dev container for local development
 
 ## Getting Started
+
+### Pull From GitHub Container Registry
+
+After the container image workflow has published the image, run Shipyard without cloning the repository:
+
+```bash
+docker pull ghcr.io/darthza/shipyard:latest
+
+docker run --rm \
+  --name shipyard \
+  -p 8080:8080 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e Docker__Endpoint=unix:///var/run/docker.sock \
+  ghcr.io/darthza/shipyard:latest
+```
+
+### Run With Docker Compose
+
+Build and run Shipyard:
+
+```bash
+docker compose up --build
+```
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+### Run With Docker
+
+Build the image:
+
+```bash
+docker build -t shipyard:local .
+```
+
+Run Shipyard with access to the host Docker socket:
+
+```bash
+docker run --rm \
+  --name shipyard \
+  -p 8080:8080 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e Docker__Endpoint=unix:///var/run/docker.sock \
+  shipyard:local
+```
+
+More Docker options are documented in [docs/docker.md](docs/docker.md).
+
+### Run Locally
 
 The recommended workflow is to open this repository in the dev container. The dev container mounts the host Docker socket so Shipyard can inspect and control local Docker containers.
 
@@ -105,8 +158,12 @@ Pointing Shipyard at a remote Docker API gives it control over that remote daemo
 ├── .devcontainer/
 │   ├── devcontainer.json
 │   └── Dockerfile
+├── .github/
+│   └── workflows/
+│       └── container-image.yml
 ├── docs/
-│   └── architecture.md
+│   ├── architecture.md
+│   └── docker.md
 ├── src/
 │   └── Shipyard.Web/
 │       ├── Components/
@@ -115,6 +172,8 @@ Pointing Shipyard at a remote Docker API gives it control over that remote daemo
 │       └── Program.cs
 ├── LICENSE
 ├── README.md
+├── compose.yaml
+├── Dockerfile
 └── Shipyard.sln
 ```
 

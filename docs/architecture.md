@@ -67,6 +67,8 @@ It can also be changed at runtime from the dashboard. The selected value is scop
 
 ## Dev Container
 
+The dev container is for contributors working on the codebase. It is separate from the production `Dockerfile` used to run Shipyard as an app container.
+
 The dev container installs the .NET SDK and Docker CLI, then mounts the host Docker socket:
 
 ```json
@@ -76,3 +78,25 @@ The dev container installs the .NET SDK and Docker CLI, then mounts the host Doc
 ```
 
 This keeps local development simple, but it means code running in the dev container can control the host Docker daemon.
+
+## App Container
+
+The root `Dockerfile` builds and publishes the Blazor app with the .NET SDK image, then runs it with the ASP.NET runtime image.
+
+The `compose.yaml` file runs Shipyard on port `8080` and mounts:
+
+```text
+/var/run/docker.sock:/var/run/docker.sock
+```
+
+This lets Shipyard inspect and control containers managed by the host Docker daemon.
+
+## Published Image
+
+The `.github/workflows/container-image.yml` workflow builds the root `Dockerfile` and publishes images to GitHub Container Registry:
+
+```text
+ghcr.io/darthza/shipyard
+```
+
+Pushes to `main` publish `latest`, branch, and SHA tags. Version tags like `v1.0.0` publish matching image tags.

@@ -1,0 +1,15 @@
+services:
+  shipyard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: shipyard:local
+    container_name: shipyard
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Docker__Endpoint: unix:///var/run/docker.sock
+    restart: unless-stopped
