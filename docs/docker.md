@@ -1,6 +1,6 @@
 # Running Shipyard in Docker
 
-Shipyard can run as a container. To manage containers on the host, mount the host Docker socket into the Shipyard container.
+Shipyard can run as a container. To manage Docker containers on the host, mount the host Docker socket into the Shipyard container. For Podman, see [podman.md](podman.md).
 
 ## Pull From GHCR
 
@@ -58,7 +58,7 @@ docker run --rm \
 
 ## Remote Docker Endpoint
 
-If you do not want to mount the local Docker socket, you can point Shipyard at a reachable Docker API endpoint:
+If you do not want to mount the local Docker socket, you can point Shipyard at a reachable Docker-compatible API endpoint:
 
 ```bash
 docker run --rm \
@@ -72,4 +72,4 @@ You can also edit the endpoint from the Shipyard dashboard after the app starts.
 
 ## Security
 
-Mounting `/var/run/docker.sock` gives Shipyard control over the host Docker daemon. A remote Docker API gives Shipyard control over that remote daemon. Only run Shipyard against Docker endpoints you trust.
+Mounting `/var/run/docker.sock` gives Shipyard control over the host Docker daemon. A remote Docker-compatible API gives Shipyard control over that remote daemon. Only run Shipyard against endpoints you trust.

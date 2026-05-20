@@ -1,6 +1,6 @@
 # Architecture
 
-Shipyard is intentionally small. The app is a Blazor Server application that talks to the local Docker daemon through `Docker.DotNet`.
+Shipyard is intentionally small. The app is a Blazor Server application that talks to a Docker-compatible container engine API through `Docker.DotNet`.
 
 ## Runtime Flow
 
@@ -9,7 +9,7 @@ Browser
   -> Blazor Server UI
   -> IDockerContainerService
   -> Docker.DotNet
-  -> Docker daemon socket
+  -> Docker or Podman API socket
 ```
 
 ## Main Components
@@ -18,7 +18,7 @@ Browser
   - Lists containers.
   - Runs start and stop actions.
   - Supports manual refresh and optional auto-refresh.
-  - Lets the user edit the active Docker endpoint for the current Blazor session.
+  - Lets the user edit the active container engine endpoint for the current Blazor session.
 
 - `Components/Pages/ContainerLogs.razor`
   - Fetches recent logs for a selected container.
@@ -31,7 +31,7 @@ Browser
   - Implements container listing, start, stop, and log reads through `Docker.DotNet`.
 
 - `Services/DockerEndpointState.cs`
-  - Holds the active Docker endpoint for the current Blazor Server circuit.
+  - Holds the active container engine endpoint for the current Blazor Server circuit.
 
 - `Models/ContainerSummary.cs`
   - Holds the container data shown by the dashboard.
@@ -45,6 +45,12 @@ By default, the service connects to:
 
 ```text
 unix:///var/run/docker.sock
+```
+
+The Podman dashboard preset uses:
+
+```text
+unix:///var/run/podman/podman.sock
 ```
 
 On Windows, it falls back to:
@@ -90,6 +96,14 @@ The `compose.yaml` file runs Shipyard on port `8080` and mounts:
 ```
 
 This lets Shipyard inspect and control containers managed by the host Docker daemon.
+
+The `compose.podman.yaml` file mounts a rootless Podman socket to:
+
+```text
+/var/run/podman/podman.sock
+```
+
+This lets Shipyard inspect and control containers managed by Podman through Podman's Docker-compatible API.
 
 ## Published Image
 

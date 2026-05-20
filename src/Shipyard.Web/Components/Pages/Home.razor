@@ -19,15 +19,17 @@
     </div>
 </section>
 
-<section class="endpoint-panel" aria-label="Docker endpoint">
+<section class="endpoint-panel" aria-label="Container engine endpoint">
     <div>
-        <div class="endpoint-title">Docker endpoint</div>
+        <div class="endpoint-title">Container engine endpoint</div>
         <div class="endpoint-current">@DockerEndpoint.Endpoint</div>
     </div>
     <div class="endpoint-form">
-        <input class="form-control" aria-label="Docker endpoint URL" placeholder="unix:///var/run/docker.sock or tcp://server:2375" @bind="dockerEndpointInput" />
+        <input class="form-control" aria-label="Container engine endpoint URL" placeholder="unix:///var/run/docker.sock or unix:///var/run/podman/podman.sock" @bind="dockerEndpointInput" />
         <button class="btn btn-primary" @onclick="ApplyDockerEndpointAsync" disabled="@isBusy">Apply</button>
         <button class="btn btn-outline-secondary" @onclick="ResetDockerEndpointAsync" disabled="@isBusy">Default</button>
+        <button class="btn btn-outline-secondary" @onclick="UseDockerEndpointAsync" disabled="@isBusy">Docker</button>
+        <button class="btn btn-outline-secondary" @onclick="UsePodmanEndpointAsync" disabled="@isBusy">Podman</button>
     </div>
 </section>
 
@@ -166,7 +168,29 @@ else
             DockerEndpoint.Reset();
             dockerEndpointInput = DockerEndpoint.Endpoint;
             containers = await DockerContainers.GetContainersAsync();
-            statusMessage = "Docker endpoint reset to the default.";
+            statusMessage = "Container engine endpoint reset to the default.";
+        });
+    }
+
+    private async Task UseDockerEndpointAsync()
+    {
+        await RunWithMessagesAsync(async () =>
+        {
+            DockerEndpoint.UseDocker();
+            dockerEndpointInput = DockerEndpoint.Endpoint;
+            containers = await DockerContainers.GetContainersAsync();
+            statusMessage = $"Connected to Docker at {DockerEndpoint.Endpoint}.";
+        });
+    }
+
+    private async Task UsePodmanEndpointAsync()
+    {
+        await RunWithMessagesAsync(async () =>
+        {
+            DockerEndpoint.UsePodman();
+            dockerEndpointInput = DockerEndpoint.Endpoint;
+            containers = await DockerContainers.GetContainersAsync();
+            statusMessage = $"Connected to Podman at {DockerEndpoint.Endpoint}.";
         });
     }
 

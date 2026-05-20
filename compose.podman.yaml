@@ -1,0 +1,14 @@
+services:
+  shipyard:
+    image: ghcr.io/darthza/shipyard:latest
+    container_name: shipyard
+    ports:
+      - "8080:8080"
+    volumes:
+      - ${XDG_RUNTIME_DIR}/podman/podman.sock:/var/run/podman/podman.sock
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Docker__Endpoint: unix:///var/run/podman/podman.sock
+    security_opt:
+      - label=disable
+    restart: unless-stopped
