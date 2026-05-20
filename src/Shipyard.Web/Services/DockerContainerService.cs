@@ -29,7 +29,9 @@ public sealed class DockerContainerService : IDockerContainerService
                 container.State,
                 container.Status,
                 new DateTimeOffset(DateTime.SpecifyKind(container.Created, DateTimeKind.Utc)),
-                FormatPorts(container.Ports)))
+                FormatPorts(container.Ports),
+                GetGroupName(container.Labels),
+                GetGroupType(container.Labels)))
             .ToList();
     }
 
@@ -86,6 +88,46 @@ public sealed class DockerContainerService : IDockerContainerService
     private DockerClient CreateClient() => new DockerClientConfiguration(new Uri(_dockerEndpoint.Endpoint)).CreateClient();
 
     private static string CleanName(string name) => name.TrimStart('/');
+
+    private static string? GetGroupName(IDictionary<string, string> labels)
+    {
+        if (labels.TryGetValue("com.docker.compose.project", out var composeProject))
+        {
+            return composeProject;
+        }
+
+        if (labels.TryGetValue("com.docker.stack.namespace", out var stackNamespace))
+        {
+            return stackNamespace;
+        }
+
+        if (labels.TryGetValue("io.podman.compose.project", out var podmanComposeProject))
+        {
+            return podmanComposeProject;
+        }
+
+        return null;
+    }
+
+    private static string? GetGroupType(IDictionary<string, string> labels)
+    {
+        if (labels.ContainsKey("com.docker.compose.project"))
+        {
+            return "Compose";
+        }
+
+        if (labels.ContainsKey("com.docker.stack.namespace"))
+        {
+            return "Stack";
+        }
+
+        if (labels.ContainsKey("io.podman.compose.project"))
+        {
+            return "Podman Compose";
+        }
+
+        return null;
+    }
 
     private static IReadOnlyList<string> FormatPorts(IList<Port> ports)
     {

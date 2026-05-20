@@ -1,0 +1,47 @@
+<tr class="@RowClass">
+    <td>
+        <a class="container-name" href="@($"containers/{Container.Id}/logs")">@Container.Name</a>
+        <div class="container-id">@Container.Id[..12]</div>
+    </td>
+    <td>@Container.Image</td>
+    <td>
+        <span class="status-pill @(Container.IsRunning ? "running" : "stopped")">@Container.State</span>
+        <div class="status-detail">@Container.Status</div>
+    </td>
+    <td>
+        @if (Container.Ports.Count == 0)
+        {
+            <span class="muted">None</span>
+        }
+        else
+        {
+            @foreach (var port in Container.Ports)
+            {
+                <div>@port</div>
+            }
+        }
+    </td>
+    <td>@Container.Created.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+    <td class="actions">
+        <button class="btn btn-sm btn-success" @onclick="() => OnStart.InvokeAsync(Container)" disabled="@(Container.IsRunning || IsBusy)">Start</button>
+        <button class="btn btn-sm btn-danger" @onclick="() => OnStop.InvokeAsync(Container)" disabled="@(!Container.IsRunning || IsBusy)">Stop</button>
+        <a class="btn btn-sm btn-outline-primary" href="@($"containers/{Container.Id}/logs")">Logs</a>
+    </td>
+</tr>
+
+@code {
+    [Parameter, EditorRequired]
+    public ContainerSummary Container { get; set; } = default!;
+
+    [Parameter]
+    public string? RowClass { get; set; }
+
+    [Parameter]
+    public bool IsBusy { get; set; }
+
+    [Parameter]
+    public EventCallback<ContainerSummary> OnStart { get; set; }
+
+    [Parameter]
+    public EventCallback<ContainerSummary> OnStop { get; set; }
+}

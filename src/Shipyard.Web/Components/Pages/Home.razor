@@ -41,6 +41,9 @@ else if (containers.Count == 0)
 }
 else
 {
+    var groups = GetContainerGroups();
+    var standaloneContainers = GetStandaloneContainers();
+
     <div class="table-wrap">
         <table class="table align-middle container-table">
             <thead>
@@ -54,38 +57,42 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var container in containers)
+                @foreach (var group in groups)
                 {
-                    <tr>
+                    <tr class="group-row">
                         <td>
-                            <a class="container-name" href="@($"containers/{container.Id}/logs")">@container.Name</a>
-                            <div class="container-id">@container.Id[..12]</div>
+                            <button class="group-toggle" @onclick="() => ToggleGroup(group.Name)" aria-expanded="@IsGroupExpanded(group.Name)">
+                                <span class="group-chevron @(IsGroupExpanded(group.Name) ? "expanded" : null)">›</span>
+                                <span>
+                                    <span class="container-name">@group.Name</span>
+                                    <span class="group-type">@group.Type</span>
+                                </span>
+                            </button>
                         </td>
-                        <td>@container.Image</td>
+                        <td>@($"{group.Containers.Count} containers")</td>
                         <td>
-                            <span class="status-pill @(container.IsRunning ? "running" : "stopped")">@container.State</span>
-                            <div class="status-detail">@container.Status</div>
+                            <span class="status-pill group-status @(group.RunningCount > 0 ? "running" : "stopped")">
+                                @($"{group.RunningCount} running")
+                            </span>
+                            <div class="status-detail">@($"{group.StoppedCount} stopped")</div>
                         </td>
-                        <td>
-                            @if (container.Ports.Count == 0)
-                            {
-                                <span class="muted">None</span>
-                            }
-                            else
-                            {
-                                @foreach (var port in container.Ports)
-                                {
-                                    <div>@port</div>
-                                }
-                            }
-                        </td>
-                        <td>@container.Created.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
-                        <td class="actions">
-                            <button class="btn btn-sm btn-success" @onclick="() => StartContainerAsync(container)" disabled="@(container.IsRunning || isBusy)">Start</button>
-                            <button class="btn btn-sm btn-danger" @onclick="() => StopContainerAsync(container)" disabled="@(!container.IsRunning || isBusy)">Stop</button>
-                            <a class="btn btn-sm btn-outline-primary" href="@($"containers/{container.Id}/logs")">Logs</a>
-                        </td>
+                        <td>@FormatGroupPorts(group)</td>
+                        <td>@group.Created.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td class="muted">Group</td>
                     </tr>
+
+                    @if (IsGroupExpanded(group.Name))
+                    {
+                        @foreach (var container in group.Containers)
+                        {
+                            <ContainerTableRow Container="container" RowClass="child-row" IsBusy="isBusy" OnStart="StartContainerAsync" OnStop="StopContainerAsync" />
+                        }
+                    }
+                }
+
+                @foreach (var container in standaloneContainers)
+                {
+                    <ContainerTableRow Container="container" IsBusy="isBusy" OnStart="StartContainerAsync" OnStop="StopContainerAsync" />
                 }
             </tbody>
         </table>
@@ -94,6 +101,7 @@ else
 
 @code {
     private IReadOnlyList<ContainerSummary>? containers;
+    private readonly HashSet<string> collapsedGroups = new(StringComparer.OrdinalIgnoreCase);
     private bool isBusy;
     private bool autoRefresh;
     private string? errorMessage;
@@ -111,6 +119,7 @@ else
         await RunWithMessagesAsync(async () =>
         {
             containers = await DockerContainers.GetContainersAsync();
+            SyncGroupExpansionState();
         });
     }
 
@@ -152,6 +161,59 @@ else
         {
             isBusy = false;
         }
+    }
+
+    private IReadOnlyList<ContainerGroup> GetContainerGroups()
+    {
+        if (containers is null)
+        {
+            return [];
+        }
+
+        return containers
+            .Where(container => container.IsGrouped)
+            .GroupBy(container => container.GroupName!, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new ContainerGroup(
+                group.Key,
+                group.First().GroupType ?? "Group",
+                group.OrderBy(container => container.Name).ToList()))
+            .OrderBy(group => group.Name)
+            .ToList();
+    }
+
+    private IReadOnlyList<ContainerSummary> GetStandaloneContainers()
+    {
+        if (containers is null)
+        {
+            return [];
+        }
+
+        return containers
+            .Where(container => !container.IsGrouped)
+            .OrderByDescending(container => container.Created)
+            .ToList();
+    }
+
+    private bool IsGroupExpanded(string groupName) => !collapsedGroups.Contains(groupName);
+
+    private void ToggleGroup(string groupName)
+    {
+        if (!collapsedGroups.Add(groupName))
+        {
+            collapsedGroups.Remove(groupName);
+        }
+    }
+
+    private void SyncGroupExpansionState()
+    {
+        var groupNames = GetContainerGroups().Select(group => group.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        collapsedGroups.RemoveWhere(groupName => !groupNames.Contains(groupName));
+    }
+
+    private static string FormatGroupPorts(ContainerGroup group)
+    {
+        var portCount = group.Containers.Sum(container => container.Ports.Count);
+        return portCount == 0 ? "None" : $"{portCount} exposed";
     }
 
     private void OnAutoRefreshChanged()

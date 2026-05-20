@@ -193,6 +193,22 @@ a:hover,
     background: #fafafa;
 }
 
+.container-table tbody tr.group-row {
+    background: #fbfbfb;
+}
+
+.container-table tbody tr.group-row:hover {
+    background: #f7f7f8;
+}
+
+.container-table tbody tr.child-row {
+    background: #fff;
+}
+
+.container-table tbody tr.child-row td:first-child {
+    padding-left: 2.5rem;
+}
+
 .container-table th {
     background: #fbfbfb;
     color: #71717a;
@@ -211,6 +227,48 @@ a:hover,
 .container-name:hover {
     text-decoration: underline;
     text-underline-offset: .18rem;
+}
+
+.group-toggle {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    display: inline-flex;
+    gap: .6rem;
+    padding: 0;
+    text-align: left;
+}
+
+.group-toggle:hover .container-name {
+    text-decoration: underline;
+    text-underline-offset: .18rem;
+}
+
+.group-chevron {
+    align-items: center;
+    border: 1px solid #d4d4d8;
+    border-radius: 999px;
+    color: #52525b;
+    display: inline-flex;
+    font-size: 1rem;
+    height: 1.45rem;
+    justify-content: center;
+    line-height: 1;
+    transition: transform .15s ease;
+    width: 1.45rem;
+}
+
+.group-chevron.expanded {
+    transform: rotate(90deg);
+}
+
+.group-type {
+    color: #71717a;
+    display: block;
+    font-size: .82rem;
+    font-weight: 500;
+    margin-top: .15rem;
 }
 
 .container-table td {
@@ -244,6 +302,10 @@ a:hover,
     background: #fff7f7;
     border-color: #f5c2c7;
     color: #a31621;
+}
+
+.status-pill.group-status {
+    text-transform: none;
 }
 
 .actions-column {
@@ -363,6 +425,19 @@ a:hover,
 
     .container-table td:nth-child(6)::before {
         content: "Actions";
+    }
+
+    .container-table tr.group-row {
+        background: #fbfbfb;
+    }
+
+    .container-table tr.child-row {
+        margin-left: .75rem;
+        width: calc(100% - .75rem);
+    }
+
+    .container-table tbody tr.child-row td:first-child {
+        padding-left: 1rem;
     }
 
     .container-table td.actions {
