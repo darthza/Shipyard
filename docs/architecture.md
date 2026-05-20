@@ -18,7 +18,6 @@ Browser
   - Lists containers.
   - Runs start and stop actions.
   - Supports manual refresh and optional auto-refresh.
-  - Lets the user edit the active container engine endpoint for the current Blazor session.
 
 - `Components/Pages/ContainerLogs.razor`
   - Fetches recent logs for a selected container.
@@ -31,7 +30,7 @@ Browser
   - Implements container listing, start, stop, and log reads through `Docker.DotNet`.
 
 - `Services/DockerEndpointState.cs`
-  - Holds the active container engine endpoint for the current Blazor Server circuit.
+  - Resolves the active container engine endpoint from configuration.
 
 - `Models/ContainerSummary.cs`
   - Holds the container data shown by the dashboard.
@@ -47,7 +46,7 @@ By default, the service connects to:
 unix:///var/run/docker.sock
 ```
 
-The Podman dashboard preset uses:
+Podman can be configured with:
 
 ```text
 unix:///var/run/podman/podman.sock
@@ -59,17 +58,18 @@ On Windows, it falls back to:
 npipe://./pipe/docker_engine
 ```
 
-The endpoint can be overridden with configuration:
+The endpoint can be configured in `/config/shipyard.json`:
 
 ```json
 {
-  "Docker": {
+  "ContainerEngine": {
+    "Type": "docker",
     "Endpoint": "unix:///var/run/docker.sock"
   }
 }
 ```
 
-It can also be changed at runtime from the dashboard. The selected value is scoped to the current Blazor Server session.
+The `/config` directory should be mounted to a persistent volume when Shipyard runs as a container.
 
 ## Dev Container
 
@@ -93,6 +93,7 @@ The `compose.yaml` file runs Shipyard on port `8080` and mounts:
 
 ```text
 /var/run/docker.sock:/var/run/docker.sock
+shipyard-config:/config
 ```
 
 This lets Shipyard inspect and control containers managed by the host Docker daemon.
@@ -101,6 +102,7 @@ The `compose.podman.yaml` file mounts a rootless Podman socket to:
 
 ```text
 /var/run/podman/podman.sock
+shipyard-config:/config
 ```
 
 This lets Shipyard inspect and control containers managed by Podman through Podman's Docker-compatible API.

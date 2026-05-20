@@ -1,0 +1,6 @@
+{
+  "ContainerEngine": {
+    "Type": "podman",
+    "Endpoint": "unix:///var/run/podman/podman.sock"
+  }
+}

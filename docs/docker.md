@@ -13,7 +13,7 @@ docker run --rm \
   --name shipyard \
   -p 8080:8080 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -e Docker__Endpoint=unix:///var/run/docker.sock \
+  -v shipyard-config:/config \
   ghcr.io/darthza/shipyard:latest
 ```
 
@@ -52,8 +52,31 @@ docker run --rm \
   --name shipyard \
   -p 8080:8080 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -e Docker__Endpoint=unix:///var/run/docker.sock \
+  -v shipyard-config:/config \
   shipyard:local
+```
+
+## Persistent Configuration
+
+Shipyard reads `/config/shipyard.json` when it starts. Mount `/config` to a named volume so this file survives container recreation:
+
+```bash
+docker volume create shipyard-config
+```
+
+Create or edit the config file in that volume:
+
+```bash
+docker run --rm \
+  -v shipyard-config:/config \
+  alpine sh -c 'cat > /config/shipyard.json <<EOF
+{
+  "ContainerEngine": {
+    "Type": "docker",
+    "Endpoint": "unix:///var/run/docker.sock"
+  }
+}
+EOF'
 ```
 
 ## Remote Docker Endpoint
@@ -64,11 +87,12 @@ If you do not want to mount the local Docker socket, you can point Shipyard at a
 docker run --rm \
   --name shipyard \
   -p 8080:8080 \
+  -v shipyard-config:/config \
   -e Docker__Endpoint=tcp://docker-host:2375 \
   shipyard:local
 ```
 
-You can also edit the endpoint from the Shipyard dashboard after the app starts.
+Environment variables still work, but `/config/shipyard.json` is preferred for persistent configuration.
 
 ## Security
 

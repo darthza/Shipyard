@@ -9,7 +9,11 @@ services:
       - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - shipyard-config:/config
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       Docker__Endpoint: unix:///var/run/docker.sock
     restart: unless-stopped
+
+volumes:
+  shipyard-config:

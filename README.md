@@ -10,8 +10,7 @@ Shipyard is a minimal Blazor Server app for monitoring and managing Docker or Po
 - Stop running containers
 - View recent stdout and stderr logs
 - Optional dashboard auto-refresh
-- Edit the container engine endpoint URL from the dashboard
-- Use Docker or Podman endpoint presets
+- Configure Docker or Podman from a persistent config file
 
 ## Tech Stack
 
@@ -36,7 +35,7 @@ docker run --rm \
   --name shipyard \
   -p 8080:8080 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -e Docker__Endpoint=unix:///var/run/docker.sock \
+  -v shipyard-config:/config \
   ghcr.io/darthza/shipyard:latest
 ```
 
@@ -69,7 +68,7 @@ docker run --rm \
   --name shipyard \
   -p 8080:8080 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -e Docker__Endpoint=unix:///var/run/docker.sock \
+  -v shipyard-config:/config \
   shipyard:local
 ```
 
@@ -90,8 +89,8 @@ podman run --rm \
   --name shipyard \
   -p 8080:8080 \
   -v "$XDG_RUNTIME_DIR/podman/podman.sock:/var/run/podman/podman.sock" \
+  -v shipyard-config:/config \
   --security-opt label=disable \
-  -e Docker__Endpoint=unix:///var/run/podman/podman.sock \
   ghcr.io/darthza/shipyard:latest
 ```
 
@@ -99,7 +98,7 @@ More Podman options are documented in [docs/podman.md](docs/podman.md).
 
 ### Run Locally
 
-The recommended workflow is to open this repository in the dev container. The dev container mounts the host Docker socket so Shipyard can inspect and control local Docker containers. You can also point the dashboard at a Podman socket.
+The recommended workflow is to open this repository in the dev container. The dev container mounts the host Docker socket so Shipyard can inspect and control local Docker containers. You can also configure Shipyard to use a Podman socket.
 
 Run the app:
 
@@ -113,24 +112,37 @@ Open:
 http://localhost:8080
 ```
 
-## Container Engine Endpoint
+## Configuration
 
-Shipyard uses the local Docker socket by default:
-
-```text
-unix:///var/run/docker.sock
-```
-
-You can change the endpoint from the dashboard. Examples:
+Shipyard reads optional configuration from:
 
 ```text
-unix:///var/run/docker.sock
-unix:///var/run/podman/podman.sock
-tcp://server-name:2375
-http://server-name:2375
+/config/shipyard.json
 ```
 
-Remote Docker-compatible APIs must be reachable from the machine or dev container running Shipyard.
+Example Docker configuration:
+
+```json
+{
+  "ContainerEngine": {
+    "Type": "docker",
+    "Endpoint": "unix:///var/run/docker.sock"
+  }
+}
+```
+
+Example Podman configuration:
+
+```json
+{
+  "ContainerEngine": {
+    "Type": "podman",
+    "Endpoint": "unix:///var/run/podman/podman.sock"
+  }
+}
+```
+
+Mount `/config` to a Docker or Podman volume so this file survives container recreation.
 
 ## Development Commands
 
@@ -174,7 +186,7 @@ docker run --rm \
 
 Shipyard uses the Docker socket to manage containers. Mounting `/var/run/docker.sock` gives the app broad control over the host Docker daemon. Use this setup only in trusted local development environments.
 
-Pointing Shipyard at a Docker or Podman API gives it control over that container engine. Only connect to trusted endpoints.
+Pointing Shipyard at a Docker or Podman API gives it control over that container engine. Only configure trusted endpoints.
 
 ## Project Structure
 
@@ -198,6 +210,9 @@ Pointing Shipyard at a Docker or Podman API gives it control over that container
 │       └── Program.cs
 ├── LICENSE
 ├── README.md
+├── config/
+│   ├── shipyard.example.json
+│   └── shipyard.podman.example.json
 ├── compose.podman.yaml
 ├── compose.yaml
 ├── Dockerfile

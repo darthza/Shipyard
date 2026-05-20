@@ -6,9 +6,13 @@ services:
       - "8080:8080"
     volumes:
       - ${XDG_RUNTIME_DIR}/podman/podman.sock:/var/run/podman/podman.sock
+      - shipyard-config:/config
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       Docker__Endpoint: unix:///var/run/podman/podman.sock
     security_opt:
       - label=disable
     restart: unless-stopped
+
+volumes:
+  shipyard-config:

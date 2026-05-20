@@ -37,8 +37,8 @@ podman run --rm \
   --name shipyard \
   -p 8080:8080 \
   -v "$XDG_RUNTIME_DIR/podman/podman.sock:/var/run/podman/podman.sock" \
+  -v shipyard-config:/config \
   --security-opt label=disable \
-  -e Docker__Endpoint=unix:///var/run/podman/podman.sock \
   ghcr.io/darthza/shipyard:latest
 ```
 
@@ -49,8 +49,8 @@ sudo podman run --rm \
   --name shipyard \
   -p 8080:8080 \
   -v /run/podman/podman.sock:/var/run/podman/podman.sock \
+  -v shipyard-config:/config \
   --security-opt label=disable \
-  -e Docker__Endpoint=unix:///var/run/podman/podman.sock \
   ghcr.io/darthza/shipyard:latest
 ```
 
@@ -74,15 +74,22 @@ If your Podman installation does not include `podman compose`, use your installe
 docker compose -f compose.podman.yaml up
 ```
 
-## Dashboard Endpoint
+## Persistent Configuration
 
-The dashboard includes a `Podman` preset that points Shipyard at:
+Shipyard reads `/config/shipyard.json` when it starts. Mount `/config` to a volume so this file survives container recreation.
 
-```text
-unix:///var/run/podman/podman.sock
+Rootless Podman config:
+
+```json
+{
+  "ContainerEngine": {
+    "Type": "podman",
+    "Endpoint": "unix:///var/run/podman/podman.sock"
+  }
+}
 ```
 
-If you mount the Podman socket somewhere else, paste the matching `unix://` URL into the endpoint input and click `Apply`.
+If you mount the Podman socket somewhere else, set `ContainerEngine:Endpoint` to the matching `unix://` URL.
 
 ## Notes
 

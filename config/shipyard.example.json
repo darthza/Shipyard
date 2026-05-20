@@ -1,0 +1,6 @@
+{
+  "ContainerEngine": {
+    "Type": "docker",
+    "Endpoint": "unix:///var/run/docker.sock"
+  }
+}
